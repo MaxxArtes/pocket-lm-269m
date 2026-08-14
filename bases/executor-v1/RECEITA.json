@@ -1,0 +1,16 @@
+{
+ "nome": "executor-v1",
+ "nome_antigo": "full-executor-v1",
+ "data": "2026-08-13",
+ "tipo": "pre-treino do zero",
+ "params": 286005248,
+ "horas": 12,
+ "tokens": 7010000000.0,
+ "passos": 53921,
+ "val_fim": 2.4401,
+ "premium": "executor_premium/v1 (1,9M tokens unicos)",
+ "premium_epocas": 148,
+ "DECAY_FRAC": 0.2,
+ "PREMIUM_FRAC": 0.2,
+ "ALERTA": "148 epocas do premium — 4x alem do ponto onde o retorno zera"
+}

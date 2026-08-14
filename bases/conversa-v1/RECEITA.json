@@ -1,0 +1,16 @@
+{
+ "nome": "conversa-v1",
+ "nome_antigo": "full-conversa-v1",
+ "data": "2026-08-13",
+ "tipo": "pre-treino do zero",
+ "params": 286005248,
+ "horas": 12,
+ "tokens": 7600000000.0,
+ "passos": 56627,
+ "val_fim": 2.4756,
+ "premium": "conversa_premium/v2 (6,6M tokens unicos)",
+ "premium_epocas": 81,
+ "DECAY_FRAC": 0.2,
+ "PREMIUM_FRAC": 0.35,
+ "ALERTA": "81 epocas do premium; literatura diz que o valor acaba em ~40"
+}

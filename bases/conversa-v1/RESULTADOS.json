@@ -1,0 +1,13 @@
+{
+ "CALAME_PT": 48.55,
+ "LAMBADA_PT": 32.23,
+ "coerencia_juiz": 69.2,
+ "personagem_juiz": 82.7,
+ "inventou_fato": 6.7,
+ "conversa_armadilha": "14/15",
+ "conversa_distinct2": 0.711,
+ "acoes_intencao": 0.0,
+ "acoes_f1_com_parada": 29.0,
+ "com_sft_acoes_f1": 73.34,
+ "RESSALVA": "coerencia medida com n=52; o antigo (24,4) foi n=160 — reger na mesma regua"
+}

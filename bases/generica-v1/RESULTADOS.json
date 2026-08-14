@@ -1,0 +1,10 @@
+{
+ "CALAME_PT": 53.13,
+ "LAMBADA_PT": 36.85,
+ "acoes_intencao": 0.0,
+ "acoes_f1_campos": 34.6,
+ "acoes_f1_com_parada": 29.0,
+ "conversa_armadilha": "0/15",
+ "conversa_distinct2": 0.634,
+ "com_sft_acoes_f1": 74.52
+}

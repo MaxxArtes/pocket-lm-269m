@@ -1,0 +1,12 @@
+{
+ "CALAME_PT": 49.86,
+ "LAMBADA_PT": 35.01,
+ "acoes_intencao": 86.4,
+ "acoes_f1_campos": 37.96,
+ "acoes_f1_com_parada": 73.65,
+ "acoes_bem_formada": 98.2,
+ "conversa_armadilha": "0/15",
+ "conversa_distinct2": 0.682,
+ "com_sft_acoes_f1": 72.83,
+ "NOTA": "o F1 de 37,96 era erro de medicao: sem terminador. Com parada correta, 73,65"
+}

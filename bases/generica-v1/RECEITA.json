@@ -1,0 +1,9 @@
+{
+ "nome": "generica-v1",
+ "nome_antigo": "corpus-limpo-v1",
+ "data": "2026-08-13",
+ "tipo": "pre-treino",
+ "params": 269000000,
+ "corpus": "corpus-limpo (licenca declarada, ODC-By/CC0)",
+ "obs": "base generica; nao viu dado de tarefa"
+}
