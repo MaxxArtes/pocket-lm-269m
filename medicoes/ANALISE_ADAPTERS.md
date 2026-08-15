@@ -56,9 +56,10 @@ Avisos que viajam com a tabela:
    diferença de 3 aceites (10 vs 13), e a contagem automática "disse não sei" deu 15/15
    nos DOIS. Antes de concluir que o contexto degradou a recusa, re-julgar as mesmas 15
    armadilhas 2–3 vezes; não iterar treino por causa disso ainda.
-4. **Contra o v8: ameaça na execução e em conversa, perde em língua.** Intenção 87,92
-   vs 89,7 no mesmo conjunto de 1035 (a decisão formal é o McNemar em curso, instância
-   do dono). O candidato traz o que o v8 não tem: coerência de conversa ~79 e
+4. **Contra o v8: ameaça na execução e em conversa, perde em língua.** A decisão formal
+   saiu no McNemar pareado de 14/08 (ver §4 abaixo): no run pareado o v8 fez 87,73 de
+   intenção contra 87,92 do candidato — 1 item líquido em 1.035, ruído — e ficou 3,1 pp
+   acima em F1 de campos. O candidato traz o que o v8 não tem: coerência de conversa ~79 e
    honestidade 93 (app). Mas em língua o v8 segue claramente acima: CALAME 48,36 vs
    42,97 e sobretudo LAMBADA 38,39 vs 24,01 — o replay de 25% recuperou 2/3 do CALAME
    da base (49,86) e só ~55% do LAMBADA (35,01). O v8 fechou ACIMA da base em LAMBADA;
@@ -80,3 +81,22 @@ Avisos que viajam com a tabela:
 4. Menor: o 5-shot só emite rótulo válido em ~58–62% das saídas (dose7: 84,7%). O acerto
    subiu mesmo assim, mas se ICL virar feature de produto, vale um olhar no formato.
 
+## 4. Veredito do McNemar pareado (14/08, n=1035)
+
+| modelo | intenção | F1 campos |
+|---|---|---|
+| v8 (oficial) | 87,73 | **77,96** |
+| adapter-app-v1 | **87,92** | 74,84 |
+
+Mesmo conjunto, mesma ordem, agregado pareado (R2 `avaliacao/mcnemar_resumo.json`;
+também no placar vivo, https://pocket.omnigen.ia.br/placar/). Vantagem líquida do
+candidato: **1 item de intenção** — dentro do ruído. F1 de campos do v8 3,1 pp acima.
+
+**v8 permanece o oficial.** O candidato só justificaria a troca fechando o F1 de campos
+e a LAMBADA (item 3 da seção anterior), sem perder a coerência de conversa que é o seu
+diferencial.
+
+Nota de método: como o v8 é LoRA e o candidato é SFT completo, a comparação exigiu
+fundir o adapter na base (chaves gguf → state_dict) com **portão de sanidade** — ≥60 de
+intenção em 50 itens antes de valer medição. Detalhe em `docs/PLACAR.md`, seção do
+McNemar pareado.
