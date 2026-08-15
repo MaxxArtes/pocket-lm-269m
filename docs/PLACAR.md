@@ -7,7 +7,8 @@ ilha. Célula vazia é lacuna conhecida, não "não importa".
 **Segunda regra:** número só entra aqui com o **n** e a **régua**. Foi por não registrar
 isso que o CALAME da base (n=2.076) e o do v6 (n=400) viraram incomparáveis.
 
-Atualizado em 07/08/2026.
+Atualizado em 15/08/2026. Versão viva (regenerada a cada rodada):
+https://pocket.omnigen.ia.br/placar/
 
 ## Versões acompanhadas
 
@@ -19,7 +20,8 @@ Atualizado em 07/08/2026.
 | `assistente` | base + SFT de ações fundido (0,85/0,15) | HF |
 | `qat2`, `qat4` | braços de QA-LoRA — **reprovados**, não são produto | local |
 | `v7` | v6 + dado corrigido (calc literal, unidades, consistência, incompletude) | local — **reprovado** (call −5,9 real) |
-| `v8` | v7 + tabela completa, verbos de call protegidos, +300 negativos compostos | local — **CANDIDATO a congelar** |
+| `v8` | v7 + tabela completa, verbos de call protegidos, +300 negativos compostos | R2 `runs/lora-acoes-v8` — **OFICIAL (congelado 08/08)** |
+| `adapter-app-v1` / `adapter-whats-v1` | SFT completo sobre `executor-v1`, dose 7%, replay 25% | R2 `derivados/269m/` — candidatos, ver McNemar abaixo |
 
 ## Língua
 
@@ -187,6 +189,28 @@ teste). Produto continua com as MESMAS 4 features ligadas + regra de confiança;
 **Decisão (análise 3, agy): CONGELAR o v8.** As 4 features do produto empatam com o v6
 (89,9 vs 90,5, ruído); v8 ganha MASSIVE, hard-OOS, timer e calc; mensagem/lembrete caem
 mas estão DESLIGADOS. Timer 87,5 ainda não habilita (executa sem confirmação; régua 95).
+
+## McNemar pareado — v8 × adapter-app-v1 (14/08, n=1035)
+
+O desafio dos adapters de produto (`medicoes/ANALISE_ADAPTERS.md`) contra o oficial,
+no MESMO conjunto e mesma ordem (agregado pareado; resumo em R2
+`avaliacao/mcnemar_resumo.json`, também no placar vivo):
+
+| modelo | intenção | F1 campos |
+|---|---|---|
+| `v8` (oficial) | 87,73 | **77,96** |
+| `adapter-app-v1` | **87,92** | 74,84 |
+
+Vantagem líquida de intenção do candidato: **1 item em 1.035** — ruído. F1 de campos do
+v8 fica **3,1 pp acima**. **Veredito: v8 permanece o oficial.**
+
+**Metodologia validada nesta rodada (fusão LoRA para comparação justa):** o v8 é LoRA e o
+candidato é SFT completo — comparar exige fundir o adapter na base antes de medir (mesma
+matemática do export GGUF: `W += B@A · α/r`, mapeando as chaves da convenção gguf para o
+`state_dict`; ver `receitas/job_mcnemar_v8.sh`). Duas tentativas anteriores falharam mudas
+(fusão incompleta → v8 marcando ~0). A regra que ficou: **portão de sanidade** — o modelo
+fundido precisa de ≥60 de intenção em 50 itens ANTES de valer medição; abaixo disso o job
+aborta e imprime as chaves dos tensores, em vez de publicar número falso.
 
 ## Quantização — 13 níveis
 
