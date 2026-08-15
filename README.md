@@ -8,6 +8,9 @@ lições. Licença **Apache 2.0** — pesos e código.
 - Pesos no Hugging Face: coleção **Pocket-LM 269M** (usuário [`Magurofg`](https://huggingface.co/Magurofg))
 - Corpus de pré-treino: 12,3 bi de tokens pt-BR **só com licença declarada** (ODC-By/CC0) —
   ver `docs/licencas-e-risco-juridico.md` e `docs/montagem-corpus.md`
+- **Placar vivo** (toda versão × toda métrica, regenerado a cada rodada):
+  https://pocket.omnigen.ia.br/placar/ — versão em markdown em `docs/PLACAR.md`
+- Aplicações comerciais construídas sobre a família: https://pitaia.ia.br
 
 ## As três bases (pré-treino do zero, 269M/286M parâmetros)
 
@@ -38,6 +41,9 @@ pré-treino, sem SFT nenhum** — o SFT só fecha a extração de campos (F1 38�
 - Replay 25% recupera a língua **sem custar execução**: CALAME 18→43, 5-shot 19→41,
   intenção 87,2→87,4, F1-parada 74,9→75,5.
 - Dose de conversa de 7% compra ~50 pp de coerência por 0,4 pp de intenção.
+- **McNemar pareado contra o adapter oficial de produto (v8, n=1035):** intenção 87,92
+  (adapter-app-v1) × 87,73 (v8) — 1 item líquido, ruído; F1 de campos 74,84 × 77,96 —
+  3,1 pp a favor do v8. **O v8 permanece oficial.** Detalhe em `docs/PLACAR.md`.
 
 ## A "física" medida
 
@@ -66,6 +72,14 @@ por professores) e o juiz calibrado não fazem parte desta publicação.
 Arquitetura GPT (decoder-only) definida em `treino/model.py`; checkpoints no HF em
 safetensors (bf16) + `tokenizer.json` (BPE próprio, treinado no corpus pt-BR). Export
 para GGUF: `treino/exporta_gguf.py` (roda em llama.cpp; Q4_K_M testado em Android).
+
+Nota de reprodução — **fusão de LoRA para comparação**: para comparar um adapter LoRA
+com um SFT completo, funda o adapter na base antes de medir (mesma matemática do export
+GGUF: `W += B@A · α/r`, mapeando as chaves da convenção gguf para o `state_dict` —
+ver `receitas/job_mcnemar_v8.sh`) e valide com um **portão de sanidade**: o modelo
+fundido precisa de ≥60 de intenção em 50 itens antes de qualquer medição valer. Fusão
+silenciosamente incompleta produz números falsos — foi assim duas vezes aqui antes de a
+regra existir.
 
 ## Citação
 
