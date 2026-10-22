@@ -14,10 +14,10 @@ lições. Licença **Apache 2.0** — pesos e código.
   Total: 16,2 bi de fichas únicas. `conversa-v1` e `executor-v1` foram pré-treinadas do
   zero sem essa fase.
 - **Correção de 21/08/2026:** no treino em 4 GPUs, os 4 processos liam o mesmo micro-lote.
-  As contagens anteriores mediam fichas processadas, não fichas distintas. **Limitação
-  conhecida:** o `treino/train_gpu.py` publicado aqui ainda monta a mesma permutação em
-  todos os processos. Para usar em várias GPUs, fatie a ordem da época por processo
-  (`ordem[RANK::MUNDO]`) antes de treinar.
+  As contagens anteriores mediam fichas processadas, não fichas distintas. Desde 22/10/2026
+  o `treino/train_gpu.py` publicado aqui dá a cada processo a sua fatia da época, sem
+  sobreposição (`treino/teste_fatia_ddp.py` prova isso na CPU, com 2 processos). Os
+  números dos runs antigos continuam valendo com a correção acima; eles não foram refeitos.
 - **Modelo recomendado hoje:** `pocket-assistente-v2-q4_k_m.gguf` (28/08/2026) em
   [Magurofg/pocket-lm-269m](https://huggingface.co/Magurofg/pocket-lm-269m). As seções
   abaixo citam o v8, que era o oficial até essa data.
@@ -75,7 +75,7 @@ zera em ~40), e quanto confiar em cada instrumento (juiz cego tem ruído de ±9 
 ```
 bases/        receita + resultados de cada base (JSON)
 receitas/     jobs de treino e avaliação como rodaram (Vast.ai, H100/4090)
-treino/       model.py, laços de treino, tokenização, export GGUF
+treino/       model.py, otim.py, laços de treino, tokenização, export GGUF
 avaliacao/    CALAME-PT e LAMBADA-PT (log-verossimilhança e geração)
 medicoes/     tabela de cobertura e análise dos adapters
 docs/         história, corpus, licenças, receitas, vereditos (QAT, quantização...)

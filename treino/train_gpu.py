@@ -202,6 +202,51 @@ _rng_premium = np.random.default_rng(20260728)
 _rng_replay = np.random.default_rng(20260729)
 
 
+def ordem_da_epoca(n_tokens, epoca, rank=0, mundo=1):
+    """Blocos que ESTE processo le na epoca, e a fase da epoca.
+
+    Todos os processos geram a mesma permutacao (mesma semente) e cada um fica com a sua
+    fatia `[rank::mundo]`: juntos cobrem a epoca sem sobreposicao. Sem a fatia, os N
+    processos liam o mesmo micro-lote — o treino roda e a perda cai, mas so 1/N das fichas
+    processadas sao distintas.
+
+    A permutacao e cortada num multiplo de `mundo` antes de fatiar, para todas as fatias
+    terem o mesmo tamanho. Com fatias desiguais um processo viraria a epoca antes dos
+    outros e passaria a ler a permutacao seguinte enquanto os demais ainda leem a atual,
+    e as fatias voltariam a se sobrepor. O corte deixa de fora menos de `mundo` blocos
+    por epoca, sorteados de novo a cada epoca. Com mundo=1 nada muda.
+    """
+    rng = np.random.default_rng(1337 + epoca)
+    fase = int(rng.integers(0, BLOCK))
+    # o numero de blocos ja desconta a fase: assim blocos*BLOCK + fase nunca
+    # passa do fim e nao precisa de modulo (que fazia blocos do fim colidirem
+    # com blocos do inicio, desfazendo a cobertura exata)
+    n_blocos = max(1, (n_tokens - BLOCK - 1 - fase) // BLOCK + 1)
+    ordem = rng.permutation(n_blocos)
+    if mundo > 1:
+        ordem = ordem[:n_blocos - n_blocos % mundo][rank::mundo]
+        if len(ordem) == 0:
+            raise SystemExit(f"corpus pequeno demais para {mundo} processos: "
+                             f"{n_blocos} blocos de {BLOCK}")
+    return ordem, fase
+
+
+def tempo_comum(t0):
+    """Segundos desde t0 segundo o rank 0, o mesmo valor em todos os processos.
+
+    Sob DDP, o fim do orcamento e a entrada no decay (que liga o corpus premium) dependem
+    do relogio. Com o relogio de cada processo, um rank podia entrar no decay ou sair do
+    laco um passo antes dos outros: no primeiro caso as epocas da varredura dessincronizam
+    e as fatias voltam a se sobrepor; no segundo, os demais travam esperando o all-reduce.
+    """
+    decorrido = time.time() - t0
+    if not DDP_ON:
+        return decorrido
+    t = torch.tensor([decorrido], dtype=torch.float64, device=dev)
+    dist.broadcast(t, 0)
+    return float(t.item())
+
+
 def get_batch(data, permutado=True):
     """Varredura permutada com fase deslocada por epoca.
 
@@ -217,13 +262,8 @@ def get_batch(data, permutado=True):
     if permutado:
         if _sweep["ordem"] is None or _sweep["pos"] + BATCH > len(_sweep["ordem"]):
             _sweep["epoca"] += 1
-            rng = np.random.default_rng(1337 + _sweep["epoca"])
-            fase = int(rng.integers(0, BLOCK))
-            # o numero de blocos ja desconta a fase: assim blocos*BLOCK + fase nunca
-            # passa do fim e nao precisa de modulo (que fazia blocos do fim colidirem
-            # com blocos do inicio, desfazendo a cobertura exata)
-            n_blocos = max(1, (len(data) - BLOCK - 1 - fase) // BLOCK + 1)
-            _sweep.update({"ordem": rng.permutation(n_blocos), "pos": 0, "fase": fase})
+            ordem, fase = ordem_da_epoca(len(data), _sweep["epoca"], RANK, MUNDO)
+            _sweep.update({"ordem": ordem, "pos": 0, "fase": fase})
         blocos = _sweep["ordem"][_sweep["pos"]:_sweep["pos"] + BATCH]
         _sweep["pos"] += BATCH
         ix = blocos * BLOCK + _sweep["fase"]
@@ -418,7 +458,7 @@ def main():
         model = DDP(modelo_cru,
                     device_ids=[LOCAL_RANK] if torch.cuda.is_available() else None)
     opt = opts[0]
-    ema = (MediaPesos(model, EMA_DECAY, EMA_A_CADA, EMA_HORIZONTE)
+    ema = (MediaPesos(modelo_cru, EMA_DECAY, EMA_A_CADA, EMA_HORIZONTE)
            if EMA_DECAY > 0 or EMA_HORIZONTE > 0 else None)
     scaler = torch.cuda.amp.GradScaler(enabled=(use_amp and AMP_DTYPE == torch.float16))
 
@@ -470,6 +510,9 @@ def main():
                       "n_layer": N_LAYER, "n_head": N_HEAD, "n_embd": N_EMBD,
                       "block": BLOCK, "batch": BATCH, "grad_accum": GRAD_ACCUM,
                       "tokens_por_step": BATCH * GRAD_ACCUM * BLOCK,
+                      # tokens_por_step e por processo; somando os processos:
+                      "mundo": MUNDO,
+                      "tokens_por_step_todos": BATCH * GRAD_ACCUM * BLOCK * MUNDO,
                       "lr_pico": LR, "warmup": WARMUP, "decay_frac": DECAY_FRAC,
                       "budget_s": BUDGET_S, "otim": desc_otim,
                       "flops_por_token": fpt, "gpu_pico_tflops": GPU_PICO / 1e12,
@@ -482,7 +525,10 @@ def main():
                                 else None}), flush=True)
 
     pre_decay_salvo = os.path.exists(os.path.join(OUT, "ckpt_pre_decay.pt"))
-    while step < MAX_STEPS and time.time() - t0 < BUDGET_S:
+    while step < MAX_STEPS:
+        decorrido = tempo_comum(t0)
+        if decorrido >= BUDGET_S:
+            break
         # o orcamento e do TREINO inteiro, nao deste processo: sem somar o gasto
         # anterior, uma retomada devolveria o LR ao pico
         # Por padrao o cronograma e por TEMPO (ver docstring de lr_at): garante que a
@@ -494,7 +540,7 @@ def main():
         if PASSO_FIXO:
             frac_tempo = min(1.0, step / max(1, MAX_STEPS))
         else:
-            frac_tempo = min(1.0, (gasto_anterior + time.time() - t0) / max(1.0, BUDGET_S))
+            frac_tempo = min(1.0, (gasto_anterior + decorrido) / max(1.0, BUDGET_S))
         # checkpoint da fase estavel, SEPARADO do ckpt.pt rotativo: e o unico ponto
         # de retomada canonico do WSD (MiniCPM/Ibrahim) — estender do checkpoint ja
         # decaido exigiu re-warmup e custou o ext1 inteiro (val 2,55->2,81). Salvo
@@ -541,7 +587,7 @@ def main():
         steps_janela += 1
         n_acum += GRAD_ACCUM
         if ema is not None:
-            ema.atualiza(model, step)
+            ema.atualiza(modelo_cru, step)
         if step % EVAL_EVERY == 0:
             # throughput medido na JANELA entre avaliacoes: nao adiciona sync nenhum, e
             # diluir sobre EVAL_EVERY steps tira o ruido de step a step
@@ -556,9 +602,9 @@ def main():
             # decidir qual dos dois pesos exportar no fim
             vl_ema = None
             if ema is not None and ema.n > 0:
-                guardado = ema.aplica_em(model)
+                guardado = ema.aplica_em(modelo_cru)
                 vl_ema = estimate_loss(model, val)
-                ema.restaura(model, guardado)
+                ema.restaura(modelo_cru, guardado)
             hist.append({"step": step, "val": round(vl, 4),
                          **({"val_ema": round(vl_ema, 4)} if vl_ema else {})})
             print(json.dumps({"step": step, "val": round(vl, 4),
@@ -576,6 +622,10 @@ def main():
                 "params": modelo_cru.num_params(), "val_ini": round(val_ini, 4),
                 "tokens_por_step": BATCH * GRAD_ACCUM * BLOCK,
                 "tokens_processados": step * BATCH * GRAD_ACCUM * BLOCK,
+                "mundo": MUNDO,
+                # supoe o mesmo numero de processos desde o passo 0; numa retomada com
+                # outro mundo, o trecho anterior fica contado com o mundo atual
+                "tokens_processados_todos": step * BATCH * GRAD_ACCUM * BLOCK * MUNDO,
                 "config": {"n_layer": N_LAYER, "n_head": N_HEAD, "n_embd": N_EMBD,
                            "block": BLOCK, "batch": BATCH, "grad_accum": GRAD_ACCUM,
                            "lr_pico": LR, "decay_frac": DECAY_FRAC, "budget_s": BUDGET_S},
@@ -604,9 +654,9 @@ def main():
     val_fim = estimate_loss(model, val)
     val_fim_ema = None
     if ema is not None and ema.n > 0:
-        guardado = ema.aplica_em(model)
+        guardado = ema.aplica_em(modelo_cru)
         val_fim_ema = estimate_loss(model, val)
-        ema.restaura(model, guardado)
+        ema.restaura(modelo_cru, guardado)
     save_ckpt(modelo_cru, opts, scaler, step, cfg, hist,
               gasto_anterior + time.time() - t0, ema)
     # "treino_terminado", nao "terminado": depois disto ainda vem a amostra e o
@@ -633,9 +683,15 @@ def main():
            "steps_total": step, "val_ini": round(val_ini, 4), "val_fim": round(val_fim, 4),
            "val_fim_ema": round(val_fim_ema, 4) if val_fim_ema else None,
            "otim": desc_otim,
+           # replay e premium sao amostrados com reposicao: so a varredura do corpus
+           # principal garante fichas distintas entre processos
+           "mundo": MUNDO, "epoca_final": _sweep["epoca"],
+           "tokens_processados_todos_nesta_execucao":
+               (step - step0) * BATCH * GRAD_ACCUM * BLOCK * MUNDO,
            "train_ult": round(last, 4) if last else None, "amostra": amostra,
            "duracao_min": round((time.time() - t0) / 60, 1)}
-    json.dump(rep, open(REPORT, "w"), ensure_ascii=False, indent=1)
+    if E_MESTRE:   # como no checkpoint: N processos no mesmo caminho corrompem o arquivo
+        json.dump(rep, open(REPORT, "w"), ensure_ascii=False, indent=1)
     print(json.dumps({k: v for k, v in rep.items() if k != "amostra"}), flush=True)
     print("AMOSTRA:", amostra, flush=True)
     return 0

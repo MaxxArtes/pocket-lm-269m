@@ -6,7 +6,7 @@ Versão pública: cobre apenas o material do 269M.
 | o quê | valor | fonte |
 |---|---|---|
 | MFU 269M em H100 | 19% (108k tok/s) | corpus-limpo-v1 |
-| escala DDP 4x H100 | ~4,0x em fichas **processadas**; em fichas **distintas**, 1x (os 4 processos liam o mesmo lote; o `train_gpu.py` publicado ainda não fatia) | corpus-limpo-v1; correção 21/08 |
+| escala DDP 4x H100 | ~4,0x em fichas **processadas**; em fichas **distintas**, 1x (os 4 processos liam o mesmo lote; o `train_gpu.py` publicado fatia por processo desde 22/10) | corpus-limpo-v1; correção 21/08 |
 | SFT 50k pares (fração 4090) | ~8,5 min, ~US$ 0,05 | adapters 14/08 |
 | download R2->host: sequencial | ~1 MB/s (INACEITÁVEL) | Taiwan 14/08 |
 | download R2->host: 24 fluxos | ~15x mais rápido | idem |
