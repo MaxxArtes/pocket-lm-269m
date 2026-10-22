@@ -6,8 +6,21 @@ família **269M**: bases de pré-treino, receitas de treino, adapters de produto
 lições. Licença **Apache 2.0** — pesos e código.
 
 - Pesos no Hugging Face: coleção **Pocket-LM 269M** (usuário [`Magurofg`](https://huggingface.co/Magurofg))
-- Corpus de pré-treino: 12,3 bi de tokens pt-BR **só com licença declarada** (ODC-By/CC0) —
-  ver `docs/licencas-e-risco-juridico.md` e `docs/montagem-corpus.md`
+- Corpus: a **fase final** de pré-treino da `generica-v1` consumiu **3,08 bi de fichas únicas**
+  amostradas de um corpus de 12,31 bi montado só com fontes de licença declarada pelos
+  distribuidores (finepdfs e FineWeb2-HQ: ODC-By 1.0, que cobre a base de dados e não
+  automaticamente cada documento; HPLT 2.0: CC0). Ela continuou pesos de fases anteriores
+  (13,1 bi de fichas) cuja fonte principal é o **ClassiCC-PT, que não declara licença**.
+  Total: 16,2 bi de fichas únicas. `conversa-v1` e `executor-v1` foram pré-treinadas do
+  zero sem essa fase.
+- **Correção de 21/08/2026:** no treino em 4 GPUs, os 4 processos liam o mesmo micro-lote.
+  As contagens anteriores mediam fichas processadas, não fichas distintas. **Limitação
+  conhecida:** o `treino/train_gpu.py` publicado aqui ainda monta a mesma permutação em
+  todos os processos. Para usar em várias GPUs, fatie a ordem da época por processo
+  (`ordem[RANK::MUNDO]`) antes de treinar.
+- **Modelo recomendado hoje:** `pocket-assistente-v2-q4_k_m.gguf` (28/08/2026) em
+  [Magurofg/pocket-lm-269m](https://huggingface.co/Magurofg/pocket-lm-269m). As seções
+  abaixo citam o v8, que era o oficial até essa data.
 - **Placar vivo** (toda versão × toda métrica, regenerado a cada rodada):
   https://pocket.omnigen.ia.br/placar/ — versão em markdown em `docs/PLACAR.md`
 - Aplicações comerciais construídas sobre a família: https://pitaia.ia.br
@@ -16,12 +29,16 @@ lições. Licença **Apache 2.0** — pesos e código.
 
 | base | ideia | CALAME-PT | LAMBADA-PT | intenção (ações) | coerência (conversa) |
 |---|---|---|---|---|---|
-| `generica-v1` | só corpus limpo, nenhum dado de tarefa | **53,13** | **36,85** | 0,0 | 11,5 |
+| `generica-v1` | fase final com fontes de licença declarada (fases anteriores com ClassiCC-PT), nenhum dado de tarefa | **53,13** | **36,85** | 0,0 | 11,5 |
 | `conversa-v1` | fase de decay dominada por diálogo | 48,55 | 32,23 | 0,0 | 69,2* |
 | `executor-v1` | fase de decay dominada por ações de celular | 49,86 | 35,01 | **86,4 sem SFT** | 34,6 |
 
 \* n=52, juiz binário. Receita e resultados completos de cada base em `bases/*/RECEITA.json`
 e `bases/*/RESULTADOS.json`.
+
+CALAME-PT: uma varredura por 13-gramas no material de treino do projeto achou correspondência
+para 155 das 2.076 frases (08/09/2026). O número nas 1.921 sem correspondência detectada
+ainda não foi calculado.
 
 O achado central do `executor-v1`: **intenção 86,4% e saída bem-formada 98,2% saem do
 pré-treino, sem SFT nenhum** — o SFT só fecha a extração de campos (F1 38→73).
@@ -42,8 +59,10 @@ pré-treino, sem SFT nenhum** — o SFT só fecha a extração de campos (F1 38�
   intenção 87,2→87,4, F1-parada 74,9→75,5.
 - Dose de conversa de 7% compra ~50 pp de coerência por 0,4 pp de intenção.
 - **McNemar pareado contra o adapter oficial de produto (v8, n=1035):** intenção 87,92
-  (adapter-app-v1) × 87,73 (v8) — 1 item líquido, ruído; F1 de campos 74,84 × 77,96 —
-  3,1 pp a favor do v8. **O v8 permanece oficial.** Detalhe em `docs/PLACAR.md`.
+  (adapter-app-v1) × 87,73 (v8) — cerca de 2 itens, sem significância (o que não
+  demonstra equivalência); F1 de campos 74,84 × 77,96 — 3,1 pp a favor do v8. O v8
+  permaneceu oficial até 28/08, quando foi substituído pelo `pocket-assistente-v2` (média
+  de pesos, sem retreino). Detalhe em `docs/PLACAR.md`.
 
 ## A "física" medida
 
@@ -83,5 +102,5 @@ regra existir.
 
 ## Citação
 
-Se este material for útil, cite o repositório. Artigo em preparação (versão atualizada
-com as 84 medições e a curva de dose).
+Se este material for útil, cite o repositório. A tabela de cobertura tem 96 medições
+(12 células × 8 métricas). Um artigo está em rascunho, ainda não submetido.
