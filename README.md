@@ -25,7 +25,12 @@ lições. Licença **Apache 2.0** — pesos e código.
   https://pocket.omnigen.ia.br/placar/ — versão em markdown em `docs/PLACAR.md`
 - Aplicações comerciais construídas sobre a família: https://pitaia.ia.br
 
-## As três bases (pré-treino do zero, 269M/286M parâmetros)
+## As três bases (pré-treino do zero, 269M parâmetros)
+
+As três têm a mesma arquitetura: 20 camadas, largura 1024, 16 cabeças, vocabulário 16.384, contexto 512,
+com a matriz de embedding compartilhada com a camada de saída. São **269.228.032 parâmetros únicos**.
+Receitas antigas diziam 286.005.248 porque somavam os tensores do checkpoint, onde essa matriz aparece
+duas vezes (16.384 × 1.024 = 16.777.216).
 
 | base | ideia | CALAME-PT | LAMBADA-PT | intenção (ações) | coerência (conversa) |
 |---|---|---|---|---|---|
