@@ -10,7 +10,9 @@
 #    adaptacao a distribuicao nova), moderado pela nossa medicao de expoente 0,16.
 #  - lote global 524.288 tok (64 x 4 acum x 512 x 4 GPUs): 4x o antigo; medido que
 #    32k deixava a H100 em MFU 18,8%.
-#  - premium = finepdfs na fase de decay (PREMIUM_FRAC 0.5): a unica fonte nao-crawl
+#  - premium = finepdfs na fase de decay (PREMIUM_FRAC 0.5): a unica fonte de PDF
+#    (o card cita sobretudo dominios juridicos e educacionais; os PDFs tambem vem
+#    do Common Crawl)
 #    como dado curado do fim, que e a alavanca de maior ganho medido no nosso porte.
 #    NAO sobre-amostrado no resto do treino (veto do agy: 269M decora dialeto de PDF).
 #  - val = shards reservados de validacao (movidos para fora do treino em 04/08).

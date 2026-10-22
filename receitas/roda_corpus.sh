@@ -14,8 +14,9 @@ roda () {
   local cod=$?
   echo "[$(date +%H:%M)] $fonte terminou codigo $cod" >> $L
 }
-# finepdfs primeiro: e a unica fonte NAO-crawl, e falta de diversidade de pipeline
-# e o defeito conhecido da mistura atual
+# finepdfs primeiro: e a unica fonte de PDF (os PDFs tambem vem do Common Crawl, mas o
+# pipeline e o formato sao outros), e falta de diversidade de pipeline e o defeito
+# conhecido da mistura atual
 roda finepdfs 0-5 3000000000
 roda fineweb2hq 0-9 2000000000
 roda hplt 1-40 1000000000
